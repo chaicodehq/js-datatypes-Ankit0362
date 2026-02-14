@@ -47,4 +47,67 @@
  */
 export function buildZomatoOrder(cart, coupon) {
   // Your code here
+  if (!Array.isArray(cart) || cart.length === 0) {
+    return null;
+  }
+
+  let items = [];
+  let subtotal = 0;
+
+  for (let item of cart) {
+    if (item.qty <= 0) continue;
+
+    let addonTotal = 0;
+
+    if (item.addons) {
+      for (let addon of item.addons) {
+        let parts = addon.split(":");
+        addonTotal += parseFloat(parts[1]) || 0;
+      }
+    }
+
+    let itemTotal = (item.price + addonTotal) * item.qty;
+
+    items.push({
+      name: item.name,
+      qty: item.qty,
+      basePrice: item.price,
+      addonTotal: addonTotal,
+      itemTotal: itemTotal,
+    });
+
+    subtotal += itemTotal;
+  }
+
+  let deliveryFee = 0;
+  if (subtotal < 500) deliveryFee = 30;
+  else if (subtotal < 1000) deliveryFee = 15;
+
+  let gst = parseFloat((subtotal * 0.05).toFixed(2));
+
+  let discount = 0;
+  let code = typeof coupon === "string" ? coupon.toLowerCase() : "";
+
+  if (code === "first50") {
+    discount = Math.min(subtotal * 0.5, 150);
+  } else if (code === "flat100") {
+    discount = 100;
+  } else if (code === "freeship") {
+    discount = deliveryFee;
+    deliveryFee = 0;
+  }
+
+  let grandTotal = subtotal + deliveryFee + gst - discount;
+  if (grandTotal < 0) grandTotal = 0;
+
+  grandTotal = parseFloat(grandTotal.toFixed(2));
+
+  return {
+    items,
+    subtotal,
+    deliveryFee,
+    gst,
+    discount,
+    grandTotal,
+  };
 }
